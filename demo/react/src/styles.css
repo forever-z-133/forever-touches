@@ -1,0 +1,34 @@
+html, body {
+  width: 100%;
+  height: 90%;
+  overflow: hidden;
+}
+body {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* body:before {
+  width: 100%;
+  height: 100%;
+  content: " ";
+  position: fixed;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.1);
+} */
+.box {
+  width: 100px;
+  height: 100px;
+  will-change: transform;
+  position: relative;
+  z-index: 1;
+}
+.pink {
+  background: pink;
+}
+.blue {
+  background: lightblue;
+}

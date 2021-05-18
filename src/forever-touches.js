@@ -1,19 +1,9 @@
-import { getLen, getRotateAngle, swipeDirection } from "./utils.js";
+import { getLen, getRotateAngle, swipeDirection, Singleton } from "./utils.js";
 
 /**
  * ForeverTouches 主程序
  */
-export default class ForeverTouches {
-  /// 单例
-  static _instance = null;
-  constructor(...props) {
-    if (ForeverTouches._instance) {
-      this.init(...props);
-      ForeverTouches._instance = this;
-    }
-    return ForeverTouches._instance;
-  }
-
+class ForeverTouches {
   preV = { x: null, y: null };
   pinchStartLen = null;
   scale = 1;
@@ -37,8 +27,10 @@ export default class ForeverTouches {
   afterLongTap = false;
   afterLongTapTimeout = null;
 
+  options = {};
+
   /// 全局初始化
-  init(...props) {
+  constructor(options) {
     this._handleTouchPrevent = this._handleTouchPrevent.bind(this);
     this._handleTouchStart = this._handleTouchStart.bind(this);
     this._handleTouchMove = this._handleTouchMove.bind(this);
@@ -229,3 +221,5 @@ export default class ForeverTouches {
 
   _emitEvent(name, evt) { }
 }
+
+export default Singleton(ForeverTouches);

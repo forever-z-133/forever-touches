@@ -34,3 +34,12 @@ export function swipeDirection(x1, x2, y1, y2) {
     return "Nochange";
   }
 }
+
+export function Singleton(func) {
+  let instance = undefined;
+  return function(...args) {
+    if (instance) return instance;
+    instance = new (func.bind.apply(func, [null].concat(args)))();
+    return instance;
+  };
+}

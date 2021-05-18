@@ -1,13 +1,12 @@
-import { getLen, getRotateAngle, swipeDirection } from "./utils";
+import { getLen, getRotateAngle, swipeDirection } from "./utils.js";
 
 /**
  * ForeverTouches 主程序
- * 
  */
 export default class ForeverTouches {
   /// 单例
-  static _instance: ForeverTouches = null;
-  constructor(...props: any[]) {
+  static _instance = null;
+  constructor(...props) {
     if (ForeverTouches._instance) {
       this.init(...props);
       ForeverTouches._instance = this;
@@ -39,7 +38,7 @@ export default class ForeverTouches {
   afterLongTapTimeout = null;
 
   /// 全局初始化
-  init(...props: any[]) {
+  init(...props) {
     this._handleTouchPrevent = this._handleTouchPrevent.bind(this);
     this._handleTouchStart = this._handleTouchStart.bind(this);
     this._handleTouchMove = this._handleTouchMove.bind(this);
@@ -216,7 +215,7 @@ export default class ForeverTouches {
     this.multiTouch = false;
   }
 
-  _canTriggerMe(evt: Event) {
+  _canTriggerMe(evt) {
     return true;
   }
 
@@ -228,5 +227,5 @@ export default class ForeverTouches {
     clearTimeout(this.singleTapTimeout);
   }
 
-  _emitEvent(name: string, evt: Event) { }
+  _emitEvent(name, evt) { }
 }

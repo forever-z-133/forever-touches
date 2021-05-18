@@ -1,0 +1,12 @@
+{
+  "name": "forever-touches",
+  "version": "1.0.0",
+  "description": "增强 touches 操作，比如 drag rotate pinch 等，且解决微信下拉问题",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/forever-z-133/forever-touches.git"
+  },
+  "author": "forever-z-133",
+  "homepage": "https://github.com/forever-z-133/forever-touchess"
+}

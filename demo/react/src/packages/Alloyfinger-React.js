@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import PropTypes from 'prop-types';
 
 export default class AlloyFinger extends Component {
   constructor(props) {
@@ -90,11 +91,10 @@ export default class AlloyFinger extends Component {
     this.y1 = evt.touches[0].pageY;
     this.delta = this.now - (this.last || this.now);
     if (this.preTapPosition.x !== null) {
-      this.isDoubleTap =
-        this.delta > 0 &&
-        this.delta <= 250 &&
-        Math.abs(this.preTapPosition.x - this.x1) < 30 &&
-        Math.abs(this.preTapPosition.y - this.y1) < 30;
+      this.isDoubleTap = this.delta > 0
+        && this.delta <= 250
+        && Math.abs(this.preTapPosition.x - this.x1) < 30
+        && Math.abs(this.preTapPosition.y - this.y1) < 30;
     }
     this.preTapPosition.x = this.x1;
     this.preTapPosition.y = this.y1;
@@ -268,7 +268,17 @@ export default class AlloyFinger extends Component {
 
   _swipeDirection(x1, x2, y1, y2) {
     if (Math.abs(x1 - x2) > 80 || this.end - this.now < 250) {
-      return Math.abs(x1 - x2) >= Math.abs(y1 - y2) ? (x1 - x2 > 0 ? 'Left' : 'Right') : y1 - y2 > 0 ? 'Up' : 'Down';
+      if (Math.abs(x1 - x2) >= Math.abs(y1 - y2)) {
+        if (x1 - x2 > 0) {
+          return 'Left';
+        }
+        return 'Right';
+      }
+      if (y1 - y2 > 0) {
+        return 'Up';
+      }
+      return 'Down';
+      // return Math.abs(x1 - x2) >= Math.abs(y1 - y2) ? (x1 - x2 > 0 ? 'Left' : 'Right') : y1 - y2 > 0 ? 'Up' : 'Down';
     }
     return 'Nochange';
   }
@@ -283,3 +293,7 @@ export default class AlloyFinger extends Component {
     });
   }
 }
+AlloyFinger.propTypes = {
+  children: PropTypes.object,
+  disabled: PropTypes.bool,
+};

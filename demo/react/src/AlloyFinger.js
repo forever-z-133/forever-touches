@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
+import PropTypes from 'prop-types';
 import AlloyFinger from './packages/Alloyfinger-React';
+import './tranform';
 
 export default class CanvasScale2 extends Component {
   constructor(props) {
@@ -18,76 +20,90 @@ export default class CanvasScale2 extends Component {
     };
 
     this.initalScale = scale;
-
-    this.winW = window.innerWidth || 414;
-    this.winH = window.innerHeight || 667;
   }
 
   durationTimer = 0;
   initalScale = 1;
-  initalOriginX = 0;
-  initalOriginY = 0;
   disabled = {};
   areaRef = null;
 
+  componentDidMount = () => {
+    const { getRef } = this.props;
+    getRef && getRef(this);
+  }
+
   getAreaRef = ref => {
     if (ref) {
-      const { width, height } = this.props.style;
       this.areaRef = ref;
-      const originX = width / 2;
-      const originY = height / 2;
-      this.initalOriginX = originX;
-      this.initalOriginY = originY;
-      this.setTempState({});
+
+      window.Transform(ref);
+      const { defaultValue } = this.props;
+      const { scale = 1, left = 0, top = 0 } = defaultValue || {};
+      this.resetTransformOriginWithPercent(0.5, 0.5);
+      this.setTempState({ scale, left, top });
     }
   };
 
+  // 给外界调用，可修改缩放
+  setScale(scale, duration = 200, callback) {
+    this.setTempState({ scale, duration }, callback);
+  }
+
   // 开始缩放
   onMultipointStart = e => {
-    const { scale, left: l, top: t } = this.state;
-    this.initalScale = scale;
-
     this.resetTransformOrigin(e);
+    const { scale } = this.state;
+    this.initalScale = scale;
   };
   // 缩放
   onPinch = e => {
     e.stopPropagation();
-    const { scale: defaultScale, left: _left, top: _top } = this.props.defaultValue || {};
-    const min = defaultScale / 2;
-    const scale = Math.max(min, this.initalScale * e.scale);
+    const { scale: defaultScale } = this.props.defaultValue || {};
+    const min = defaultScale * 0.9;
+    const max = defaultScale * 4;
+    const scale = Math.max(min, Math.min(max, this.initalScale * e.scale));
 
-    this.setTempState({ scale, duration: 0 });
+    const { left: l, top: t } = this.state;
+    let left = l;
+    let top = t;
+    if (scale > defaultScale) {
+      const [minX, maxX, minY, maxY] = this.getTranslateRange();
+      left = Math.max(minX, Math.min(maxX, l));
+      top = Math.max(minY, Math.min(maxY, t));
+    }
+
+    this.setTempState({ scale, left, top, duration: 0 });
   };
   // 拖拽
   onPressMove = e => {
     // 点中激活元素时禁用画布移动
     if (this.disabled.onPressMove) return;
 
-    // 画布缩小时禁用画布移动
     const { scale: defaultScale } = this.props.defaultValue || {};
-    const { left: l, top: t, scale } = this.state;
-    if (scale <= defaultScale) return;
+    const { scale, left: _left, top: _top } = this.state;
 
-    const left = l + e.deltaX;
-    const top = t + e.deltaY;
+    if (scale < defaultScale) return;
+
+    const l = _left + e.deltaX;
+    const t = _top + e.deltaY;
+
+    const [minX, maxX, minY, maxY] = this.getTranslateRange();
+    const left = Math.max(minX, Math.min(maxX, l));
+    const top = Math.max(minY, Math.min(maxY, t));
+
     this.setTempState({ left, top, duration: 0 });
   };
   // 完成操作
   onTouchFinish = (e, must = false) => {
-    const { scale: defaultScale } = this.props.defaultValue || {};
+    const { defaultValue } = this.props;
+    const { scale: defaultScale } = defaultValue || {};
     const { scale } = this.state;
     // 若海报缩小，则动画返回默认大小
     if (must || scale < defaultScale) {
-      const { left, top } = this.props.defaultValue || {};
-      const cr = this.areaRef.getBoundingClientRect();
-      const x = cr.left + cr.width / 2;
-      const y = cr.top + cr.height / 2;
-      const center = { x, y };
-      this.resetTransformOrigin({ center });
-      setTimeout(() => {
-        this.setTempState({ scale: defaultScale, left, top, originX: 0, originY: 0, duration: 200 });
-        this.setState({});
-      }, 50);
+      const { left, top } = defaultValue || {};
+      this.setTempState({ scale: defaultScale, left, top, originX: 0, originY: 0, duration: 200 });
+      this.resetTransformOriginWithPercent(0.5, 0.5);
+      this.setState({}); // 显示缩放按钮，其实可调整为 dom 操作
     } else {
       this.setState({});
     }
@@ -124,38 +140,58 @@ export default class CanvasScale2 extends Component {
 
   // 变更缩放中心
   resetTransformOrigin(e) {
-    // 先更新中心
-    const { scale, left: l, top: t } = this.state;
     const { x: centerX, y: centerY } = e.center;
-    const cr = this.areaRef.getBoundingClientRect();
+    const { scale } = this.state;
+    const dom = this.areaRef;
+    const { originX: preOriginX, originY: preOriginY } = dom;
+    const cr = dom.getBoundingClientRect();
     const img_centerX = cr.left + cr.width / 2;
     const img_centerY = cr.top + cr.height / 2;
     const offX = centerX - img_centerX;
     const offY = centerY - img_centerY;
-    const originX = offX / scale;
-    const originY = offY / scale;
-    this.setTempState({ originX, originY, duration: 0 });
-    // 再还原为原视图
-    const cr2 = this.areaRef.getBoundingClientRect();
-    const left = l + cr.left - cr2.left;
-    const top = t + cr.top - cr2.top;
-    this.setTempState({ left, top });
+    const originX = offX / dom.scaleX;
+    const originY = offY / dom.scaleY;
+    const left = dom.translateX + offX - preOriginX * dom.scaleX;
+    const top = dom.translateY + offY - preOriginY * dom.scaleX;
+    this.setTempState({ left, top, scale, originX, originY });
+  }
+  resetTransformOriginWithPercent(percentX, percentY) {
+    const cr = this.areaRef.getBoundingClientRect();
+    const x = cr.left + cr.width * percentX;
+    const y = cr.top + cr.height * percentY;
+    this.resetTransformOrigin({ center: { x, y } });
   }
 
-  unit(val) {
-    return typeof val === 'string' ? val : `${val}px`;
+  // 重置可拖拽范围
+  getTranslateRange() {
+    const { scale: defaultScale } = this.props.defaultValue || {};
+    const { width, height } = this.props.style;
+    const { scale, originX, originY } = this.state;
+    const anchorX = originX / width;
+    const anchorY = originY / height;
+    const left = defaultScale * width / 2 * anchorX;
+    const top = defaultScale * height / 2 * anchorY;
+    const offsetX = (scale - defaultScale) * width;
+    const offsetY = (scale - defaultScale) * height;
+    const maxX = left + (anchorX + 0.5) * offsetX;
+    const minX = maxX - offsetX;
+    const maxY = top + (anchorY + 0.5) * offsetY;
+    const minY = maxY - offsetY;
+    return [minX, maxX, minY, maxY];
   }
 
   // 操作过程中的处理 dom，操作结束时处理 state
   setTempState = (newState, callback) => {
     const state = Object.assign(this.state, newState);
-
+    const dom = this.areaRef;
     const { left, top, scale, duration, originX = 0, originY = 0 } = state;
-    this.areaRef.style.transform = `translate(${left}px, ${top}px) scale(${scale})`;
-    this.areaRef.style.transition = `transform ${duration}ms`;
-    this.areaRef.style.transformOrigin = `
-      ${this.unit(originX + this.initalOriginX)} ${this.unit(originY + this.initalOriginY)}
-    `;
+    dom.originX = originX;
+    dom.originY = originY;
+    dom.scaleX = scale;
+    dom.scaleY = scale;
+    dom.translateX = left;
+    dom.translateY = top;
+    dom.style.transition = `transform ${duration}ms`;
 
     clearTimeout(this.durationTimer);
     if (duration > 0) {
@@ -166,28 +202,38 @@ export default class CanvasScale2 extends Component {
   };
 
   render() {
-    const { disabled, editor, style, ...props } = this.props;
+    const { disabled, editor, style, getRef, ...props } = this.props;
     return (
-      <AlloyFinger
-        disabled={disabled}
-        onTouchBegin={this.onTouchBegin}
-        onTouchFinish={this.onTouchFinish}
-        onMultipointStart={this.onMultipointStart}
-        onTouchCancel={this.onTouchCancel}
-        onPinch={this.onPinch}
-        onPressMove={this.onPressMove}
-      >
-        <div
-          ref={this.getAreaRef}
-          style={{
-            ...style,
-            willChange: 'transform',
-          }}
-          {...props}
+      <>
+        <AlloyFinger
+          disabled={disabled}
+          onTouchStart={this.onTouchBegin}
+          onMultipointEnd={this.onTouchFinish}
+          onMultipointStart={this.onMultipointStart}
+          onTouchCancel={this.onTouchCancel}
+          onPinch={this.onPinch}
+          onPressMove={this.onPressMove}
         >
-          {this.props.children}
-        </div>
-      </AlloyFinger>
+          <div
+            ref={this.getAreaRef}
+            style={{
+              ...style,
+              willChange: 'transform',
+            }}
+            {...props}
+          >
+            {this.props.children}
+          </div>
+        </AlloyFinger>
+      </>
     );
   }
 }
+CanvasScale2.propTypes = {
+  children: PropTypes.array,
+  defaultValue: PropTypes.object,
+  style: PropTypes.object,
+  editor: PropTypes.object,
+  disabled: PropTypes.bool,
+  getRef: PropTypes.func,
+};
